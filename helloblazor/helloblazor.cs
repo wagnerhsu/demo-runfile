@@ -1,7 +1,6 @@
 #!/usr/bin/env dotnet
 
 #:sdk Microsoft.NET.Sdk.Web
-#:property BlazorDisableThrowNavigationException=true
 #:property PublishAot=false
 
 var builder = WebApplication.CreateBuilder(args);
