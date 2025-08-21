@@ -1,4 +1,4 @@
-#!/usr/bin/aspire run
+#!/usr/bin/env aspire
 
 #:package Aspire.Hosting.AppHost@10.0.0
 #:package Aspire.Hosting.Redis@10.0.0
