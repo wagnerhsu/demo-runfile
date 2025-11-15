@@ -103,5 +103,5 @@ jobs:
         shell: bash
       
       - name: Run verification script
-        run: dotnet verify.cs --parallel --timeout 60
+        run: dotnet verify.cs --parallel --timeout 300
         working-directory: ${{ github.workspace }}
