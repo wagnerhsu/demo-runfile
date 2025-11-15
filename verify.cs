@@ -249,6 +249,8 @@ async Task<VerificationResult> VerifyFile(string filePath, int timeoutSeconds)
         startInfo.ArgumentList.Add("--launch-profile");
         startInfo.ArgumentList.Add("verify");
     }
+
+    startInfo.Environment["VERIFY_MODE"] = "1";
     
     if (OperatingSystem.IsWindows())
     {
