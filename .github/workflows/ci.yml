@@ -30,47 +30,77 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for nativelib changes
+        id: check-nativelib
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^nativelib/' && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            git diff --name-only HEAD~1 HEAD | grep '^nativelib/' && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
       
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
       
+      - name: Trust HTTPS development certificate
+        run: dotnet dev-certs https --trust --verbose
+        continue-on-error: true
+      
       - name: Install CMake (Ubuntu)
-        if: runner.os == 'Linux'
+        if: steps.check-nativelib.outputs.changed == 'true' && runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential
       
       - name: Install CMake (macOS)
-        if: runner.os == 'macOS'
+        if: steps.check-nativelib.outputs.changed == 'true' && runner.os == 'macOS'
         run: |
           brew install cmake
       
       - name: Install CMake (Windows)
-        if: runner.os == 'Windows'
+        if: steps.check-nativelib.outputs.changed == 'true' && runner.os == 'Windows'
         run: |
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
       
       - name: Build nativelib
+        if: steps.check-nativelib.outputs.changed == 'true'
         run: |
-          cmake -S nativelib -B nativelib/build
+          cmake -S nativelib -B nativelib/build -DCMAKE_BUILD_TYPE=Release
           cmake --build nativelib/build --config Release
       
-      - name: Install nativelib (Ubuntu)
-        if: runner.os == 'Linux'
+      - name: Copy nativelib output to flat/lib (Windows)
+        if: steps.check-nativelib.outputs.changed == 'true' && runner.os == 'Windows'
         run: |
-          sudo cmake --install nativelib/build
+          mkdir -p flat/lib
+          cp nativelib/build/Release/greetings.dll flat/lib/
+        shell: bash
       
-      - name: Install nativelib (macOS)
-        if: runner.os == 'macOS'
+      - name: Copy nativelib output to flat/lib (Linux)
+        if: steps.check-nativelib.outputs.changed == 'true' && runner.os == 'Linux'
         run: |
-          sudo cmake --install nativelib/build
+          mkdir -p flat/lib
+          cp nativelib/build/libgreetings.so flat/lib/
       
-      - name: Install nativelib (Windows)
-        if: runner.os == 'Windows'
+      - name: Copy nativelib output to flat/lib (macOS)
+        if: steps.check-nativelib.outputs.changed == 'true' && runner.os == 'macOS'
         run: |
-          cmake --install nativelib/build
+          mkdir -p flat/lib
+          cp nativelib/build/libgreetings.dylib flat/lib/
+      
+      - name: Commit and push nativelib artifacts
+        if: steps.check-nativelib.outputs.changed == 'true' && github.event_name == 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add flat/lib/
+          git diff --staged --quiet || (git commit -m "Update nativelib artifacts for ${{ runner.os }}" && git push origin HEAD:${{ github.head_ref }})
+        shell: bash
       
       - name: Run verification script
         run: dotnet verify.cs --parallel --timeout 60
