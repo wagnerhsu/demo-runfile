@@ -50,7 +50,19 @@ public partial class GlobalHooks
             Environment.SetEnvironmentVariable("PWDEBUG", "1");
         }
 
-        Microsoft.Playwright.Program.Main(["-noProfile", "install-deps"]);
-        Microsoft.Playwright.Program.Main(["-noProfile", "install"]);
+        // Set environment variable to prevent PowerShell profile loading
+        var originalPsNoProfile = Environment.GetEnvironmentVariable("POWERSHELL_NOPROFILE");
+        Environment.SetEnvironmentVariable("POWERSHELL_NOPROFILE", "1");
+
+        try
+        {
+            Microsoft.Playwright.Program.Main(["install-deps"]);
+            Microsoft.Playwright.Program.Main(["install"]);
+        }
+        finally
+        {
+            // Restore original value
+            Environment.SetEnvironmentVariable("POWERSHELL_NOPROFILE", originalPsNoProfile);
+        }
     }
 }

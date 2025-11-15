@@ -48,8 +48,8 @@ jobs:
         with:
           global-json-file: global.json
       
-      - name: Trust HTTPS development certificate
-        run: dotnet dev-certs https --trust --verbose
+      - name: Install HTTPS development certificate
+        run: dotnet dev-certs https --verbose
         continue-on-error: true
       
       - name: Install CMake (Ubuntu)
