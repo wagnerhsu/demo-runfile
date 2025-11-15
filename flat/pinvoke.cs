@@ -31,12 +31,10 @@ internal partial class NativeMethods
     {
 
         // Try to load the native library from the current directory.
-        // BUG: If the file is run from a different directory, it will not find the library.
-        //      See https://github.com/dotnet/sdk/issues/49184 for proposed workaround.
-        var libraryPath = Path.Join(Environment.GetEnvironmentVariable("DOTNET_EXECUTING_FILE_DIRECTORY") ?? Environment.CurrentDirectory, GetLibraryName(libraryName));
+        var libraryPath = Path.Join(AppContext.GetData("EntryPointFileDirectoryPath")?.ToString() ?? Environment.CurrentDirectory, GetLibraryName(libraryName));
         if (Debug)
         {
-            Console.WriteLine($"Attempting to load library: {libraryPath}");
+            Console.WriteLine($"Attempting to load library: {Path.NormalizeSeparators(libraryPath)}");
         }
         return NativeLibrary.TryLoad(libraryPath, out var handle)
             ? handle
@@ -74,4 +72,19 @@ internal partial class NativeMethods
 
     [LibraryImport("lib/greetings", StringMarshalling = StringMarshalling.Utf8)]
     public static partial string Greetings(string name);
+}
+
+static class PathEntryPointExtensions
+{
+    extension(Path)
+    {
+        public static string NormalizeSeparators(string path) => path.Replace(
+            Path.DirectorySeparatorChar switch
+            {
+                '/' => '\\',
+                '\\' => '/',
+                _ => throw new InvalidOperationException("Unsupported directory separator character.")
+            },
+            Path.DirectorySeparatorChar);
+    }
 }

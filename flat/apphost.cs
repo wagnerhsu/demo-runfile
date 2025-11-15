@@ -1,16 +1,19 @@
-#!/usr/bin/env dotnet
+#!/usr/bin/env aspire
 
-#:sdk Microsoft.NET.Sdk
-#:sdk Aspire.AppHost.Sdk@9.4.1
-#:package Aspire.Hosting.AppHost@9.4.1
-#:package Aspire.Hosting.Redis@9.4.1
-#:property PublishAot=false
+#:sdk Aspire.AppHost.Sdk@13.0.0
+#:package Aspire.Hosting.Redis@13.0.0
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var redis = builder.AddRedis("redis");
+var webapi = builder.AddCSharpApp("webapi", "./webapi.cs");   
 
-// builder.AddDotnetApp("../webapi/webapi.cs")
-//     .WithReference(redis).WaitFor(redis);
+builder.AddCSharpApp("razorapp", "../razorapp/razorapp.cs")
+    .WithReference(webapi).WaitFor(webapi);
+
+if (!string.Equals(builder.Configuration["DOTNET_LAUNCH_PROFILE"], "verify", StringComparison.OrdinalIgnoreCase))
+{
+    var redis = builder.AddRedis("redis");
+    webapi.WithReference(redis).WaitFor(redis);
+}
 
 builder.Build().Run();
