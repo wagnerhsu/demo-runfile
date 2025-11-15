@@ -90,6 +90,53 @@ bool HasVerifyLaunchProfile(string csFilePath)
     return false;
 }
 
+bool ShouldSkipFile(string csFilePath)
+{
+    try
+    {
+        // Read the file header (up to first code line)
+        foreach (var line in File.ReadLines(csFilePath))
+        {
+            var trimmed = line.Trim();
+            
+            // Stop at first code line (non-comment, non-directive, non-blank)
+            if (!string.IsNullOrWhiteSpace(trimmed) && 
+                !trimmed.StartsWith("#") && 
+                !trimmed.StartsWith("//") && 
+                !trimmed.StartsWith("/*"))
+            {
+                break;
+            }
+            
+            // Check for TargetFramework property directive
+            if (trimmed.StartsWith("#:property TargetFramework=", StringComparison.OrdinalIgnoreCase))
+            {
+                var tfm = trimmed.Substring("#:property TargetFramework=".Length).Trim();
+                
+                // Check if TFM is OS-specific and doesn't match current OS
+                if (tfm.Contains("-windows", StringComparison.OrdinalIgnoreCase) && !OperatingSystem.IsWindows())
+                {
+                    return true;
+                }
+                if (tfm.Contains("-linux", StringComparison.OrdinalIgnoreCase) && !OperatingSystem.IsLinux())
+                {
+                    return true;
+                }
+                if (tfm.Contains("-macos", StringComparison.OrdinalIgnoreCase) && !OperatingSystem.IsMacOS())
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    catch
+    {
+        // If we can't read the file, don't skip it
+    }
+    
+    return false;
+}
+
 List<string> FindExecutableCsFiles(string rootDir)
 {
     var files = new List<string>();
@@ -102,8 +149,14 @@ List<string> FindExecutableCsFiles(string rootDir)
             continue;
         }
         
-        // Add all .cs files in this directory
-        files.AddRange(Directory.GetFiles(dir, "*.cs"));
+        // Add all .cs files in this directory (that shouldn't be skipped)
+        foreach (var file in Directory.GetFiles(dir, "*.cs"))
+        {
+            if (!ShouldSkipFile(file))
+            {
+                files.Add(file);
+            }
+        }
         
         // Recursively search subdirectories
         files.AddRange(FindExecutableCsFiles(dir));
