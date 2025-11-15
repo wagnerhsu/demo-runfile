@@ -75,7 +75,7 @@ bool HasVerifyLaunchProfile(string csFilePath)
         }
         
         var jsonContent = File.ReadAllText(runJsonPath);
-        using var doc = JsonDocument.Parse(jsonContent);
+        using var doc = JsonDocument.Parse(jsonContent, new JsonDocumentOptions { AllowTrailingCommas = true });
         
         if (doc.RootElement.TryGetProperty("profiles", out var profiles))
         {
@@ -244,10 +244,12 @@ async Task<VerificationResult> VerifyFile(string filePath, int timeoutSeconds)
     startInfo.ArgumentList.Add(filePath);
     
     // Check for .run.json with verify launch profile
-    if (HasVerifyLaunchProfile(filePath))
+    var hasVerifyProfile = HasVerifyLaunchProfile(filePath);
+    if (hasVerifyProfile)
     {
         startInfo.ArgumentList.Add("--launch-profile");
         startInfo.ArgumentList.Add("verify");
+        result.UsedVerifyProfile = true;
     }
 
     startInfo.Environment["VERIFY_MODE"] = "1";
@@ -416,6 +418,10 @@ void DisplayResults(List<VerificationResult> results)
         
         var durationText = $"{result.Duration.TotalSeconds:F2}s";
         
+        var fileNameDisplay = result.UsedVerifyProfile 
+            ? $"{result.FileName} [dim](verify profile)[/]" 
+            : result.FileName;
+        
         // For failed apps, show full error output; for successful apps, show brief message
         string messageText;
         if (!result.Success)
@@ -437,7 +443,7 @@ void DisplayResults(List<VerificationResult> results)
         }
         
         table.AddRow(
-            result.FileName,
+            fileNameDisplay,
             statusText,
             durationText,
             messageText.EscapeMarkup()
@@ -485,6 +491,7 @@ class VerificationResult
     public string FullOutput { get; set; } = "";
     public string FullError { get; set; } = "";
     public bool HasStderr { get; set; }
+    public bool UsedVerifyProfile { get; set; }
 }
 
 internal static partial class ProcessExtensions

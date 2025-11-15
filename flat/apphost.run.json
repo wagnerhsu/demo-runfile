@@ -32,10 +32,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "VERIFY_MODE": "1",
         "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21456",
         "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:22678"
       }
-    },
+    }
   }
 }
