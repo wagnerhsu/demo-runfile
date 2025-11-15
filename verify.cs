@@ -319,10 +319,11 @@ async Task<VerificationResult> VerifyFile(string filePath, int timeoutSeconds)
                 result.Success = true;
                 result.ExitCode = 0;
                 result.Duration = stopwatch.Elapsed;
-                result.Message = "App started & stopped successfully";
                 
                 result.FullOutput = string.Join("\n", output);
                 result.FullError = string.Join("\n", error);
+                result.HasStderr = error.Count > 0;
+                result.Message = result.HasStderr ? "App started & stopped successfully" : "App started & stopped successfully";
             }
             catch
             {
@@ -358,14 +359,22 @@ async Task<VerificationResult> VerifyFile(string filePath, int timeoutSeconds)
             result.ExitCode = process.ExitCode;
             result.Duration = stopwatch.Elapsed;
             result.Success = process.ExitCode == 0;
-            result.Message = result.Success ? "Completed successfully" : $"Exit code: {process.ExitCode}";
             
             result.FullOutput = string.Join("\n", output);
             result.FullError = string.Join("\n", error);
+            result.HasStderr = error.Count > 0;
             
-            if (!result.Success && error.Count > 0)
+            if (result.Success)
+            {
+                result.Message = "Completed successfully";
+            }
+            else if (error.Count > 0)
             {
                 result.Message = string.Join("; ", error.Take(2));
+            }
+            else
+            {
+                result.Message = $"Exit code: {process.ExitCode}";
             }
         }
     }
@@ -400,7 +409,7 @@ void DisplayResults(List<VerificationResult> results)
     foreach (var result in results.OrderBy(r => r.FileName))
     {
         var statusText = result.Success 
-            ? "[green]✓ Pass[/]" 
+            ? (result.HasStderr ? "[green]✓ Pass (stderr)[/]" : "[green]✓ Pass[/]") 
             : $"[red]✗ Fail ({result.ExitCode})[/]";
         
         var durationText = $"{result.Duration.TotalSeconds:F2}s";
@@ -473,6 +482,7 @@ class VerificationResult
     public string Message { get; set; } = "";
     public string FullOutput { get; set; } = "";
     public string FullError { get; set; } = "";
+    public bool HasStderr { get; set; }
 }
 
 internal static partial class ProcessExtensions
