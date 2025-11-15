@@ -173,17 +173,17 @@ async Task<List<VerificationResult>> VerifyFilesSequential(List<string> files, i
         .Columns(
             new TaskDescriptionColumn(),
             new ProgressBarColumn(),
-            new PercentageColumn(),
             new SpinnerColumn())
         .StartAsync(async ctx =>
         {
-            var task = ctx.AddTask("[green]Verifying files[/]", maxValue: files.Count);
+            var task = ctx.AddTask($"[green]Verifying files (0/{files.Count})[/]", maxValue: files.Count);
             
             foreach (var file in files)
             {
                 var result = await VerifyFile(file, timeoutSeconds);
                 results.Add(result);
                 task.Increment(1);
+                task.Description = $"[green]Verifying files ({results.Count}/{files.Count})[/]";
             }
         });
     
@@ -199,11 +199,10 @@ async Task<List<VerificationResult>> VerifyFilesParallel(List<string> files, int
         .Columns(
             new TaskDescriptionColumn(),
             new ProgressBarColumn(),
-            new PercentageColumn(),
             new SpinnerColumn())
         .StartAsync(async ctx =>
         {
-            var progressTask = ctx.AddTask("[green]Verifying files[/]", maxValue: files.Count);
+            var progressTask = ctx.AddTask($"[green]Verifying files (0/{files.Count})[/]", maxValue: files.Count);
             
             var tasks = files.Select(async file =>
             {
@@ -212,6 +211,7 @@ async Task<List<VerificationResult>> VerifyFilesParallel(List<string> files, int
                 {
                     results.Add(result);
                     progressTask.Increment(1);
+                    progressTask.Description = $"[green]Verifying files ({results.Count}/{files.Count})[/]";
                 }
             });
             
