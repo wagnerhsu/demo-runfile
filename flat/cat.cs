@@ -1,6 +1,5 @@
 #!/usr/bin/env dotnet
-#:package System.CommandLine@2.0.0-beta5.*
-#:property LangVersion=preview
+#:package System.CommandLine@2.0.0
 
 using System.CommandLine;
 using System.IO;

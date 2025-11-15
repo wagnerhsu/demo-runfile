@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      
+      - name: Install CMake (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+      
+      - name: Install CMake (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake
+      
+      - name: Install CMake (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+      
+      - name: Build nativelib
+        run: |
+          cmake -S nativelib -B nativelib/build
+          cmake --build nativelib/build --config Release
+      
+      - name: Install nativelib (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo cmake --install nativelib/build
+      
+      - name: Install nativelib (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sudo cmake --install nativelib/build
+      
+      - name: Install nativelib (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake --install nativelib/build
+      
+      - name: Run verification script
+        run: dotnet verify.cs --parallel
+        working-directory: ${{ github.workspace }}

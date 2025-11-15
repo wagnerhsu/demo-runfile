@@ -1,33 +1,21 @@
-#!/usr/bin/dotnet run
-#:package Microsoft.NET.Test.Sdk@17.*
-#:package TUnit.Playwright@0.*
+#!/usr/bin/env dotnet
+#:package Microsoft.NET.Test.Sdk@18.0.0
+#:package TUnit.Playwright@1.1.10
+#:property PublishAot=false
 
 using TUnit.Playwright;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-public class Tests : PageTest
+public partial class Tests : PageTest
 {
-    [Before(TestSession)]
-    public static void InstallPlaywright()
-    {
-        //install playwright
-        if (Debugger.IsAttached)
-        {
-            Environment.SetEnvironmentVariable("PWDEBUG", "1");
-        }
-
-        Microsoft.Playwright.Program.Main(["install-deps"]);
-        Microsoft.Playwright.Program.Main(["install"]);
-    }
-
     [Test]
     public async Task HomepageHasPlaywrightInTitleAndGetStartedLinkLinkingtoTheIntroPage()
     {
         await Page.GotoAsync("https://playwright.dev");
 
         // Expect a title "to contain" a substring.
-        await Expect(Page).ToHaveTitleAsync(new Regex("Playwright"));
+        await Expect(Page).ToHaveTitleAsync(PlaywrightRegex());
 
         // create a locator
         var getStarted = Page.Locator("text=Get Started");
@@ -39,6 +27,30 @@ public class Tests : PageTest
         await getStarted.ClickAsync();
 
         // Expects the URL to contain intro.
-        await Expect(Page).ToHaveURLAsync(new Regex(".*intro"));
+        await Expect(Page).ToHaveURLAsync(IntroRegex());
+    }
+
+    [GeneratedRegex("Playwright")]
+    public static partial Regex PlaywrightRegex();
+
+    [GeneratedRegex(".*intro")]
+    public static partial Regex IntroRegex();
+}
+
+public partial class GlobalHooks
+{
+    [Before(TestSession)]
+    public static void InstallPlaywright()
+    {
+        Console.WriteLine("Installing Playwright browsers...");
+
+        //install playwright
+        if (Debugger.IsAttached)
+        {
+            Environment.SetEnvironmentVariable("PWDEBUG", "1");
+        }
+
+        Microsoft.Playwright.Program.Main(["-noProfile", "install-deps"]);
+        Microsoft.Playwright.Program.Main(["-noProfile", "install"]);
     }
 }

@@ -1,14 +1,28 @@
 #!/usr/bin/env dotnet
 
-new Game().Run();
+// Check for --demo mode
+var demoMode = args.Contains("--demo", StringComparer.OrdinalIgnoreCase);
+
+if (demoMode)
+{
+    // In demo mode, just create the game, render the initial screen, and exit
+    var game = new Game();
+    game.RenderInitialScreen();
+    return 0;
+}
+else
+{
+    new Game().Run();
+    return 0;
+}
 
 class Game
 {
     private readonly int width;
     private readonly int height;
     private Player player;
-    private List<Enemy> enemies;
-    private List<Bullet> bullets;
+    private readonly List<Enemy> enemies;
+    private readonly List<Bullet> bullets;
     private int enemyDirection; // 1 for right, -1 for left
     private bool gameOver;
     private bool playerWon;
@@ -16,14 +30,12 @@ class Game
 
     public Game(int width = 40, int height = 20)
     {
-        Console.Clear();
-
         this.width = width;
         this.height = height;
         // Initialize player at bottom center.
         player = new Player(width / 2, height - 1);
-        bullets = new List<Bullet>();
-        enemies = new List<Enemy>();
+        bullets = [];
+        enemies = [];
         // Create a grid of enemies.
         int rows = 3;
         int cols = 8;
@@ -39,6 +51,59 @@ class Game
         enemyDirection = 1;
         gameOver = false;
         playerWon = false;
+    }
+
+    public void RenderInitialScreen()
+    {
+        // Render the initial game state for demo/verification purposes
+        // Don't use Console.Clear() or Console.CursorVisible as they fail when redirected
+        RenderToConsole();
+        Console.WriteLine("\nDemo mode - initial game state rendered successfully.");
+    }
+
+    private void RenderToConsole()
+    {
+        // Create a buffer for the inner game area.
+        char[,] buffer = new char[height, width];
+        for (int r = 0; r < height; r++)
+        {
+            for (int c = 0; c < width; c++)
+            {
+                buffer[r, c] = ' ';
+            }
+        }
+
+        char enemyChar = 'X';
+        char playerChar = '^';
+
+        // Draw player.
+        if (player.Y >= 0 && player.Y < height && player.X >= 0 && player.X < width)
+        {
+            buffer[player.Y, player.X] = playerChar;
+        }
+        // Draw enemies.
+        foreach (var enemy in enemies)
+        {
+            if (enemy.Y >= 0 && enemy.Y < height && enemy.X >= 0 && enemy.X < width)
+            {
+                buffer[enemy.Y, enemy.X] = enemyChar;
+            }
+        }
+
+        // Draw the border.
+        string topBorder = "+" + new string('-', width) + "+";
+        Console.WriteLine(topBorder);
+        for (int r = 0; r < height; r++)
+        {
+            Console.Write("|");
+            for (int c = 0; c < width; c++)
+            {
+                Console.Write(buffer[r, c]);
+            }
+            Console.WriteLine("|");
+        }
+        string bottomBorder = "+" + new string('-', width) + "+";
+        Console.WriteLine(bottomBorder);
     }
 
     public void Run()
@@ -86,7 +151,10 @@ class Game
                 bullets.Add(new Bullet(player.X, player.Y - 1));
             }
             // Flush any additional key presses.
-            while (Console.KeyAvailable) Console.ReadKey(true);
+            while (Console.KeyAvailable)
+            {
+                Console.ReadKey(true);
+            }
         }
     }
 
@@ -107,8 +175,15 @@ class Game
         int minX = int.MaxValue, maxX = int.MinValue;
         foreach (var enemy in enemies)
         {
-            if (enemy.X < minX) minX = enemy.X;
-            if (enemy.X > maxX) maxX = enemy.X;
+            if (enemy.X < minX)
+            {
+                minX = enemy.X;
+            }
+
+            if (enemy.X > maxX)
+            {
+                maxX = enemy.X;
+            }
         }
         if ((enemyDirection == 1 && maxX >= width - 1) ||
             (enemyDirection == -1 && minX <= 0))
@@ -190,16 +265,22 @@ class Game
         foreach (var bullet in bullets)
         {
             if (bullet.Y >= 0 && bullet.Y < height && bullet.X >= 0 && bullet.X < width)
+            {
                 buffer[bullet.Y, bullet.X] = bulletChar;
+            }
         }
         // Draw player.
         if (player.Y >= 0 && player.Y < height && player.X >= 0 && player.X < width)
+        {
             buffer[player.Y, player.X] = playerChar;
+        }
         // Draw enemies.
         foreach (var enemy in enemies)
         {
             if (enemy.Y >= 0 && enemy.Y < height && enemy.X >= 0 && enemy.X < width)
+            {
                 buffer[enemy.Y, enemy.X] = enemyChar;
+            }
         }
 
         // Draw the border.
@@ -214,24 +295,13 @@ class Game
             {
                 char ch = buffer[r, c];
                 // Set color based on entity.
-                switch (ch)
+                Console.ForegroundColor = ch switch
                 {
-                    case '^':
-                    case 'A':
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        break;
-                    case 'X':
-                    case 'x':
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        break;
-                    case '|':
-                    case '!':
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        break;
-                    default:
-                        Console.ForegroundColor = ConsoleColor.Gray;
-                        break;
-                }
+                    '^' or 'A' => ConsoleColor.Green,
+                    'X' or 'x' => ConsoleColor.Red,
+                    '|' or '!' => ConsoleColor.Yellow,
+                    _ => ConsoleColor.Gray,
+                };
                 Console.Write(ch);
             }
             Console.ResetColor();
