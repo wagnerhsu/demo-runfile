@@ -44,25 +44,18 @@ public partial class GlobalHooks
     {
         Console.WriteLine("Installing Playwright browsers...");
 
-        //install playwright
         if (Debugger.IsAttached)
         {
             Environment.SetEnvironmentVariable("PWDEBUG", "1");
         }
 
-        // Set environment variable to prevent PowerShell profile loading
-        var originalPsNoProfile = Environment.GetEnvironmentVariable("POWERSHELL_NOPROFILE");
-        Environment.SetEnvironmentVariable("POWERSHELL_NOPROFILE", "1");
-
-        try
+        // Install Playwright browsers and dependencies
+        // This handles cross-platform installation automatically
+        var exitCode = Microsoft.Playwright.Program.Main(["install", "--with-deps"]);
+        
+        if (exitCode != 0)
         {
-            Microsoft.Playwright.Program.Main(["install-deps"]);
-            Microsoft.Playwright.Program.Main(["install"]);
-        }
-        finally
-        {
-            // Restore original value
-            Environment.SetEnvironmentVariable("POWERSHELL_NOPROFILE", originalPsNoProfile);
+            Console.WriteLine($"Warning: Playwright install exited with code {exitCode}");
         }
     }
 }
