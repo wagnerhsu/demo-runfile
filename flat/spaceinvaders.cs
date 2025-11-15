@@ -12,6 +12,7 @@ if (demoMode)
 }
 else
 {
+    Console.Clear();
     new Game().Run();
     return 0;
 }
