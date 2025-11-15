@@ -80,7 +80,14 @@ jobs:
       - name: Install HTTPS development certificate
         run: dotnet dev-certs https --verbose
         continue-on-error: true
-      
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
       - name: Install CMake (Ubuntu)
         if: steps.check-nativelib.outputs.changed == 'true' && runner.os == 'Linux'
         run: |
@@ -135,5 +142,5 @@ jobs:
         shell: bash
       
       - name: Run verification script
-        run: dotnet verify.cs --parallel --timeout 300
+        run: dotnet verify.cs --parallel --timeout 400
         working-directory: ${{ github.workspace }}

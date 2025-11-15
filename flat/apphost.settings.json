@@ -2,7 +2,7 @@
   "Logging": {
     "LogLevel": {
       "Default": "Information",
-      "Aspire.Hosting.Dcp": "Warning",
+      "Aspire.Hosting.Dcp": "Debug",
       "Microsoft.AspNetCore": "Warning"
     }
   },
