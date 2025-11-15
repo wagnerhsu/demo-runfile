@@ -9,6 +9,17 @@ using Spectre.Console;
 
 // Parse command-line arguments
 var useParallel = args.Contains("--parallel", StringComparer.OrdinalIgnoreCase);
+var timeoutSeconds = 10; // Default timeout
+for (int i = 0; i < args.Length; i++)
+{
+    if (args[i].Equals("--timeout", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+    {
+        if (int.TryParse(args[i + 1], out var parsed))
+        {
+            timeoutSeconds = parsed;
+        }
+    }
+}
 
 // Get the path of this script file
 var scriptPath = AppContext.GetData("EntryPointFilePath")?.ToString();
@@ -21,6 +32,7 @@ if (string.IsNullOrEmpty(scriptPath))
 var scriptDir = Path.GetDirectoryName(scriptPath) ?? Environment.CurrentDirectory;
 AnsiConsole.MarkupLine($"[cyan]Scanning for .cs files from:[/] {scriptDir}");
 AnsiConsole.MarkupLine($"[cyan]Execution mode:[/] {(useParallel ? "Parallel" : "Sequential")}");
+AnsiConsole.MarkupLine($"[cyan]Timeout:[/] {timeoutSeconds}s");
 AnsiConsole.WriteLine();
 
 // Find all .cs files in subdirectories
@@ -37,8 +49,8 @@ AnsiConsole.WriteLine();
 
 // Run verification
 var results = useParallel 
-    ? await VerifyFilesParallel(csFiles)
-    : await VerifyFilesSequential(csFiles);
+    ? await VerifyFilesParallel(csFiles, timeoutSeconds)
+    : await VerifyFilesSequential(csFiles, timeoutSeconds);
 
 // Display results in a table
 DisplayResults(results);
@@ -100,7 +112,7 @@ List<string> FindExecutableCsFiles(string rootDir)
     return files;
 }
 
-async Task<List<VerificationResult>> VerifyFilesSequential(List<string> files)
+async Task<List<VerificationResult>> VerifyFilesSequential(List<string> files, int timeoutSeconds)
 {
     var results = new List<VerificationResult>();
     
@@ -116,7 +128,7 @@ async Task<List<VerificationResult>> VerifyFilesSequential(List<string> files)
             
             foreach (var file in files)
             {
-                var result = await VerifyFile(file);
+                var result = await VerifyFile(file, timeoutSeconds);
                 results.Add(result);
                 task.Increment(1);
             }
@@ -125,7 +137,7 @@ async Task<List<VerificationResult>> VerifyFilesSequential(List<string> files)
     return results;
 }
 
-async Task<List<VerificationResult>> VerifyFilesParallel(List<string> files)
+async Task<List<VerificationResult>> VerifyFilesParallel(List<string> files, int timeoutSeconds)
 {
     var results = new List<VerificationResult>();
     var lockObj = new Lock();
@@ -142,7 +154,7 @@ async Task<List<VerificationResult>> VerifyFilesParallel(List<string> files)
             
             var tasks = files.Select(async file =>
             {
-                var result = await VerifyFile(file);
+                var result = await VerifyFile(file, timeoutSeconds);
                 lock (lockObj)
                 {
                     results.Add(result);
@@ -156,7 +168,7 @@ async Task<List<VerificationResult>> VerifyFilesParallel(List<string> files)
     return results;
 }
 
-async Task<VerificationResult> VerifyFile(string filePath)
+async Task<VerificationResult> VerifyFile(string filePath, int timeoutSeconds)
 {
     var result = new VerificationResult
     {
@@ -232,7 +244,7 @@ async Task<VerificationResult> VerifyFile(string filePath)
         process.BeginErrorReadLine();
         
         // Wait for either: process exit, shutdown message detected, or timeout
-        var timeout = TimeSpan.FromSeconds(10);
+        var timeout = TimeSpan.FromSeconds(timeoutSeconds);
         var timeoutTask = Task.Delay(timeout);
         var processTask = Task.Run(process.WaitForExit);
 

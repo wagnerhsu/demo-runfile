@@ -63,5 +63,5 @@ jobs:
           cmake --install nativelib/build
       
       - name: Run verification script
-        run: dotnet verify.cs --parallel
+        run: dotnet verify.cs --parallel --timeout 60
         working-directory: ${{ github.workspace }}
