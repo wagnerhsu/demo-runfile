@@ -1,7 +1,7 @@
 #!/usr/bin/env dotnet
 
 #:sdk Microsoft.NET.Sdk.Web
-#:package Microsoft.AspNetCore.OpenApi@10.0.0-preview.6.*
+#:package Microsoft.AspNetCore.OpenApi@10.0.0
 
 using System.Text.Json.Serialization;
 
@@ -12,12 +12,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
 });
 
-var settingsFile = $"{builder.Environment.ApplicationName}.appsettings.json";
-builder.Configuration.AddJsonFile(settingsFile, optional: true, reloadOnChange: true);
-
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
 app.MapGet("/", () => new HelloResponse { Message = "Hello, World!" })
     .WithName("HelloWorld");

@@ -1,0 +1,6 @@
+[*.cs]
+dotnet_diagnostic.ASPIRECSHARPAPPS001.severity = none
+dotnet_diagnostic.CA1050.severity = none
+dotnet_diagnostic.SP0001.severity = none
+dotnet_diagnostic.IL2026.severity = none
+csharp_prefer_braces = true:error
